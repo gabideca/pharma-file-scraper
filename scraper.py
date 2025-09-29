@@ -43,11 +43,13 @@ def run():
         except Exception as e:
             print("Erro na obtenção do nome")
         try:
-            origem = os.path.join(boletos_dir, f"{file}")
-            dest = os.path.join(r"O:\DevOps\Gabriel\Scraper\Subdir", rf"{codigo} - BOLETOS - Cliente {nome}.pdf")
-            shutil.copyfile(origem, dest)
+            arquivos_encontrados = [f for f in os.listdir(boletos_dir) if codigo in f]
+            for i, file in enumerate(arquivos_encontrados, start = 1):
+                origem = os.path.join(boletos_dir, f"{file}")
+                dest = os.path.join(r"O:\DevOps\Gabriel\Scraper\Subdir", rf"{codigo}-{i} - BOLETOS - Cliente {nome}.pdf")
+                shutil.copyfile(origem, dest)
         except Exception as e:
-            print("Erro na cópia e renomeação do arquivo")
+            print("Erro na cópia e renomeação do arquivo: ", e)
 
     except Exception as e:
         print("Erro no processo de criação da pasta: ", e)

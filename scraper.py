@@ -4,6 +4,8 @@ import pyautogui
 import time
 import sys
 import os, glob  # <-- adicionado
+import shutil # <-- adicionado
+import re # <-- adicionado
  
 # ----- CONFIG -----
 URL = "https://painel.b4youlog.com/autenticacao/index?ReturnUrl=%2Fhome%2Fmenu"
@@ -17,6 +19,41 @@ BASE_DIR = r"O:\Logística\17- Colaboradores - Pastas\6 - Caetano\TESTE"
 # -------------------
  
 def run():
+    # Cria a pasta com os arquivos renomeados
+    # Boletos
+    try:
+        try:
+            boletos_dir = r"O:\DevOps\Gabriel\Scraper\Boletos"
+
+            folder_walk = os.walk(boletos_dir)
+            file = next(folder_walk)[2][0] # Primeiro arquivo do dir
+            start_pos = file.find("N")
+            end_pos = file.find("-", start_pos)
+            codigo = file[start_pos + 1: end_pos]
+
+            print(codigo)
+        except Exception as e:
+            print("Erro na obtenção do código")
+
+        try:
+            start_pos = end_pos
+            end_pos = file.find(".")
+            nome = file[start_pos + 2:end_pos]
+            print(nome)
+        except Exception as e:
+            print("Erro na obtenção do nome")
+        try:
+            origem = os.path.join(boletos_dir, f"{file}")
+            dest = os.path.join(r"O:\DevOps\Gabriel\Scraper\Subdir", rf"{codigo} - BOLETOS - Cliente {nome}.pdf")
+            shutil.copyfile(origem, dest)
+        except Exception as e:
+            print("Erro na cópia e renomeação do arquivo")
+
+    except Exception as e:
+        print("Erro no processo de criação da pasta: ", e)
+    return
+
+    # Submete no sistema
     try:
         with sync_playwright() as pw:
             browser = pw.chromium.launch(headless=False, slow_mo=SLOW_MO_MS)  # headful para você ver

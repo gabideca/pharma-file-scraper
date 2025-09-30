@@ -172,23 +172,31 @@ def run():
             numeroPedido = str(nf_pdf)[start_pos + 1:end_pos]
 
             page.fill('input[name="numeroDoPedido"]', f"{numeroPedido}")
+
+            xml_msg = "NF XML não enviado"
+            nf_msg = "NF PDF não enviado"
+            out_msg = "BOLETOS não enviados"
  
             # Preenche os inputs (cada um é aguardado antes)
             if xml_file:
                 page.wait_for_selector("#xml-file", timeout=5000)
                 page.set_input_files("#xml-file", xml_file)
+                xml_msg = f"{xml_file[xml_file.rfind('\\'):]} Enviado com sucesso"
  
             if nf_pdf:
                 page.wait_for_selector("#arquivoNfe", timeout=5000)
                 page.set_input_files("#arquivoNfe", nf_pdf)
+                nf_msg = f"{nf_pdf[nf_pdf.rfind('\\'):]} Enviado com sucesso"
  
             if etq_pdf:
                 page.wait_for_selector("#label-file", timeout=5000)
                 page.set_input_files("#label-file", etq_pdf)
+                # nf_msg = f"{nf_pdf[xml_file.rfind('\\'):]} Enviado com sucesso"
  
             if out_pdfs:
                 page.wait_for_selector("#other-docs", timeout=5000)
                 page.set_input_files("#other-docs", out_pdfs)  # multiple
+                out_msg = f"{out_pdfs[out_pdfs.rfind('\\'):]} Enviado com sucesso" # Tratar multiplicidade
             # ---------------- [FIM NOVO BLOCO] ------------------------------
  
             # Aguarda mais 10 segundos para você checar visualmente

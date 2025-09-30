@@ -5,7 +5,7 @@ import time
 import sys
 import os, glob  # <-- adicionado
 import shutil # <-- adicionado
-import re # <-- adicionado
+import openpyxl as xl # <-- adicionado
  
 # ----- CONFIG -----
 URL = "https://painel.b4youlog.com/autenticacao/index?ReturnUrl=%2Fhome%2Fmenu"
@@ -15,7 +15,8 @@ WAIT_NETWORK_TIMEOUT = 15000  # ms
 SLOW_MO_MS = 100             # ver as ações (100ms entre ações)
  
 # Pasta de origem dos arquivos para upload (compartilhada)
-BASE_DIR = r"O:\Logística\17- Colaboradores - Pastas\6 - Caetano\TESTE"
+# BASE_DIR = r"O:\Logística\17- Colaboradores - Pastas\6 - Caetano\TESTE"
+BASE_DIR = r"O:\DevOps\Gabriel\Scraper\Logistica"
 # -------------------
  
 def run():
@@ -23,38 +24,72 @@ def run():
     # Boletos
     try:
         try:
-            boletos_dir = r"O:\DevOps\Gabriel\Scraper\Boletos"
+            # boletos_dir = r"O:\DevOps\Gabriel\Scraper\Boletos"
 
-            folder_walk = os.walk(boletos_dir)
-            file = next(folder_walk)[2][0] # Primeiro arquivo do dir
-            start_pos = file.find("N")
-            end_pos = file.find("-", start_pos)
-            codigo = file[start_pos + 1: end_pos]
-
-            print(codigo)
+            # folder_walk = os.walk(boletos_dir)
+            # file = next(folder_walk)[2][0] # Primeiro arquivo do dir
+            wb = xl.load_workbook('Boletos.xlsx') # wb = workbook
+            boletos = wb.active
         except Exception as e:
-            print("Erro na obtenção do código")
+            print("Erro na abertura da planilha")
+        
+        versao = 1
+        codigo_ant = None
 
-        try:
-            start_pos = end_pos
-            end_pos = file.find(".")
-            nome = file[start_pos + 2:end_pos]
-            print(nome)
-        except Exception as e:
-            print("Erro na obtenção do nome")
-        try:
-            arquivos_encontrados = [f for f in os.listdir(boletos_dir) if codigo in f]
-            for i, file in enumerate(arquivos_encontrados, start = 1):
-                origem = os.path.join(boletos_dir, f"{file}")
-                dest = os.path.join(r"O:\DevOps\Gabriel\Scraper\Subdir", rf"{codigo}-{i} - BOLETOS - Cliente {nome}.pdf")
+        for rowi, row_cells in enumerate(boletos.iter_rows(min_row=2), start = 2):
+            try:
+                file_name = row_cells[0].value
+                origem_path = row_cells[5].value
+
+                start_pos = file_name.find("N")
+                end_pos = file_name.find("-", start_pos)
+                
+                codigo = file_name[start_pos + 1: end_pos]
+                if codigo_ant and codigo != codigo_ant:
+                    versao = 1
+                
+                start_pos = end_pos + 2
+                end_pos = file_name.find(".", start_pos)
+                nome = file_name[start_pos: end_pos]
+                
+                if not codigo or not nome:
+                    print("Erro na obtenção de nome ou codigo")
+                
+                origem = os.path.join(str(origem_path), str(file_name))
+                dir_cliente = os.path.join(BASE_DIR, f"Cliente_{codigo}")
+                dest = os.path.join(dir_cliente, f"{codigo}-{versao} - BOLETOS - Cliente {nome}.pdf")
+                
+                os.makedirs(dir_cliente, exist_ok=True)
+                
                 shutil.copyfile(origem, dest)
-        except Exception as e:
-            print("Erro na cópia e renomeação do arquivo: ", e)
-
+                print(f"Arquivo {codigo}-{versao} - BOLETOS - Cliente {nome} copiado")
+                codigo_ant = codigo
+                versao += 1
+            
+            except Exception as e:
+                print(f"Erro na linha {rowi}: ", e)
     except Exception as e:
-        print("Erro no processo de criação da pasta: ", e)
-    return
+        print("Erro no processo de boletos: ", e)
 
+        # folder_walk = os.walk(nfs_dir)
+        # file = next(folder_walk)[2][0]
+        # end_pos = file.find("_")
+        # codigo = file[:end_pos]
+        # start_pos = end_pos
+
+        # nfs_dir = r"O:\DevOps\Gabriel\Scraper\Faturamento"
+        # diretorios_nf = [f for f in os.listdir(nfs_dir)]
+        # for i, dir in enumerate(diretorios_nf, start = 1):
+        #     for j, file in enumerate(dir):
+        #         origem = os.path.join(nfs_dir, f"{file}")
+        #         if(".xml" in file):
+        #             dest = os.path.join(rf"O:\DevOps\Gabriel\Scraper\Subdir\Cliente_{codigo}", rf"{codigo}-{i} - NF XML - Cliente {nome}.pdf")
+        #         elif(".pdf" in file):
+        #             dest = os.path.join(rf"O:\DevOps\Gabriel\Scraper\Subdir\Cliente_{codigo}", rf"{codigo}-{i} - NF PDF - Cliente {nome}.pdf")
+
+
+
+    return
     # Submete no sistema
     try:
         with sync_playwright() as pw:

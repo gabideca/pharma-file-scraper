@@ -29,7 +29,7 @@ def run():
             # folder_walk = os.walk(boletos_dir)
             # file = next(folder_walk)[2][0] # Primeiro arquivo do dir
             wb = xl.load_workbook('Boletos.xlsx') # wb = workbook
-            boletos = wb.active
+            boletos = wb['Boletos']
         except Exception as e:
             print("Erro na abertura da planilha")
         
@@ -53,7 +53,7 @@ def run():
                 nome = file_name[start_pos: end_pos]
                 
                 if not codigo or not nome:
-                    print("Erro na obtenção de nome ou codigo")
+                    print("Erro na obtenção de nome ou codigo em boleto")
                 
                 origem = os.path.join(str(origem_path), str(file_name))
                 dir_cliente = os.path.join(BASE_DIR, f"Cliente_{codigo}")
@@ -65,11 +65,44 @@ def run():
                 print(f"Arquivo {codigo}-{versao} - BOLETOS - Cliente {nome} copiado")
                 codigo_ant = codigo
                 versao += 1
-            
             except Exception as e:
-                print(f"Erro na linha {rowi}: ", e)
+                print(f"Erro em boletos na linha {rowi}: ", e)
+
+        faturamento = wb['Faturamento']
+        for rowi, row_cells in enumerate(faturamento.iter_rows(min_row=2), start = 2):
+            try:
+                file_name = row_cells[0].value
+                origem_path = row_cells[5].value
+
+                end_pos = file_name.find("_")
+                
+                codigo = file_name[:end_pos]
+                
+                start_pos = end_pos + 3
+                nome = file_name[start_pos:]
+                
+                if not codigo or not nome:
+                    print("Erro na obtenção de nome ou codigo em faturamento")
+                
+                origem = os.path.join(str(origem_path), str(file_name))
+                dir_cliente = os.path.join(BASE_DIR, f"Cliente_{codigo}")
+                if "pdf" in file_name:
+                    dest = os.path.join(dir_cliente, f"{codigo} - NF PDF - Cliente {nome}.pdf")
+                if "xml" in file_name:
+                    dest = os.path.join(dir_cliente, f"{codigo} - NF XML - Cliente {nome}.xml")
+                
+                os.makedirs(dir_cliente, exist_ok=True)
+                
+                shutil.copyfile(origem, dest)
+                if "pdf" in file_name:
+                    print(f"Arquivo {codigo} - NF PDF - Cliente {nome} copiado")
+                if "xml" in file_name:
+                    print(f"Arquivo {codigo} - NF XML - Cliente {nome} copiado")
+            except Exception as e:
+                print(f"Erro em NFs na linha {rowi}: ", e)
+
     except Exception as e:
-        print("Erro no processo de boletos: ", e)
+        print("Erro no processo de cópia: ", e)
 
         # folder_walk = os.walk(nfs_dir)
         # file = next(folder_walk)[2][0]

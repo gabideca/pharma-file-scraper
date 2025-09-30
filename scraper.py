@@ -6,7 +6,7 @@ import sys
 import os, glob  # <-- adicionado
 import shutil # <-- adicionado
 import openpyxl as xl # <-- adicionado
- 
+
 # ----- CONFIG -----
 URL = "https://painel.b4youlog.com/autenticacao/index?ReturnUrl=%2Fhome%2Fmenu"
 LOGIN = "Diego_pharmaesthetics"     # substitua
@@ -24,14 +24,18 @@ def run():
     # Boletos
     try:
         try:
-            # boletos_dir = r"O:\DevOps\Gabriel\Scraper\Boletos"
-
-            # folder_walk = os.walk(boletos_dir)
-            # file = next(folder_walk)[2][0] # Primeiro arquivo do dir
             wb = xl.load_workbook('Boletos.xlsx') # wb = workbook
             boletos = wb['Boletos']
         except Exception as e:
-            print("Erro na abertura da planilha")
+            print("Erro na abertura da planilha de entrada")
+
+        try:
+            log = wb.Workbook()
+            ws = log.active
+            log_row = 1
+            log_col = 1
+        except Exception as e:
+            print("Erro na criação do log")
         
         versao = 1
         codigo_ant = None
@@ -79,7 +83,8 @@ def run():
                 codigo = file_name[:end_pos]
                 
                 start_pos = end_pos + 3
-                nome = file_name[start_pos:]
+                end_pos = file_name.find(".")
+                nome = file_name[start_pos: end_pos]
                 
                 if not codigo or not nome:
                     print("Erro na obtenção de nome ou codigo em faturamento")
@@ -104,25 +109,6 @@ def run():
     except Exception as e:
         print("Erro no processo de cópia: ", e)
 
-        # folder_walk = os.walk(nfs_dir)
-        # file = next(folder_walk)[2][0]
-        # end_pos = file.find("_")
-        # codigo = file[:end_pos]
-        # start_pos = end_pos
-
-        # nfs_dir = r"O:\DevOps\Gabriel\Scraper\Faturamento"
-        # diretorios_nf = [f for f in os.listdir(nfs_dir)]
-        # for i, dir in enumerate(diretorios_nf, start = 1):
-        #     for j, file in enumerate(dir):
-        #         origem = os.path.join(nfs_dir, f"{file}")
-        #         if(".xml" in file):
-        #             dest = os.path.join(rf"O:\DevOps\Gabriel\Scraper\Subdir\Cliente_{codigo}", rf"{codigo}-{i} - NF XML - Cliente {nome}.pdf")
-        #         elif(".pdf" in file):
-        #             dest = os.path.join(rf"O:\DevOps\Gabriel\Scraper\Subdir\Cliente_{codigo}", rf"{codigo}-{i} - NF PDF - Cliente {nome}.pdf")
-
-
-
-    return
     # Submete no sistema
     try:
         with sync_playwright() as pw:
@@ -171,17 +157,21 @@ def run():
  
             # ------------------ [NOVO] Upload dos arquivos ------------------
             # Localiza arquivo XML (aceita .xml e também .xlm caso exista)
-            xml_candidates = glob.glob(os.path.join(BASE_DIR, "*.xml"))
+            xml_candidates = glob.glob(os.path.join(BASE_DIR + r"\Cliente_45760", "*.xml"))
             xml_file = max(xml_candidates, key=os.path.getmtime) if xml_candidates else None
  
             # Localiza PDFs e distribui por nome
-            pdfs = glob.glob(os.path.join(BASE_DIR, "*.pdf"))
+            pdfs = glob.glob(os.path.join(BASE_DIR + r"\Cliente_45760", "*.pdf"))
             # Usa ocorrência no nome do arquivo para mapear destinos
             nf_pdf  = next((f for f in pdfs if "NF"  in os.path.basename(f).upper()), None)
             etq_pdf = next((f for f in pdfs if "ETQ" in os.path.basename(f).upper()), None)
-            out_pdfs = [f for f in pdfs if "OUT" in os.path.basename(f).upper()]
+            out_pdfs = [f for f in pdfs if "BOLETO" in os.path.basename(f).upper()] # ALTEREI PARA BOLETO
  
-            # page.fill('input[name="numeroDoPedido"]', f"{nf_pdf}")
+            start_pos = str(nf_pdf).rfind('\\') # Funciona apenas para Windows
+            end_pos = str(nf_pdf).find(" ")
+            numeroPedido = str(nf_pdf)[start_pos + 1:end_pos]
+
+            page.fill('input[name="numeroDoPedido"]', f"{numeroPedido}")
  
             # Preenche os inputs (cada um é aguardado antes)
             if xml_file:
@@ -205,9 +195,10 @@ def run():
             print("Página de 'Novo - a partir do XML' carregada e arquivos anexados — aguardando 10 segundos...")
             time.sleep(10)
  
+            page.wait_for_timeout(999999999)
             # Fecha
-            context.close()
-            browser.close()
+            # context.close()
+            # browser.close()
             try:
                 pyautogui.alert(text="Script finalizado e navegador fechado.", title="Playwright", button="OK")
             except Exception:
